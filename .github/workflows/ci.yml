@@ -1,0 +1,49 @@
+# Type-checks and builds the server and the client on every pull request, so a change that
+# does not compile is flagged on the PR before anyone reviews it.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [bgu-lab]
+
+permissions:
+  contents: read
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - name: Type-check and build
+        run: npm run build
+
+  client:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+      - name: Type-check
+        run: npx tsc --noEmit -p .
+      - name: Build
+        # CI=true would turn the existing lint warnings into errors; the type-check above is the gate.
+        env:
+          CI: false
+        run: npm run build
