@@ -29,7 +29,7 @@ export const agentsSchema = new Schema<IAgent>(
         beforeUserSentencePrompt: { type: String, required: false },
         afterUserSentencePrompt: { type: String, required: false },
         inverseTimeDelay: { type: Number, required: false},
-        firstChatSentence: { type: String, required: true },
+        firstChatSentence: { type: String, required: false },
         model: { type: String, required: true },
         temperature: { type: Number },
         maxTokens: { type: Number },

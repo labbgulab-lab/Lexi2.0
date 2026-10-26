@@ -137,6 +137,10 @@ const AgentForm: React.FC<AgentFormProps> = ({
     // deleting the last row doesn't collapse the section mid-edit.
     const [phasesOpen, setPhasesOpen] = useState(() => agentUsesConversationPhases(editAgent));
 
+    // Its own state, not derived from the text, so clearing the field doesn't hide it.
+    // New agents send an opening message by default.
+    const [sendOpeningMessage, setSendOpeningMessage] = useState(() => !isEditMode || !!editAgent?.firstChatSentence);
+
     const { activeUser } = useActiveUser();
 
     // Same predicate the server uses, shared with ExperimentForm.
@@ -278,6 +282,8 @@ const AgentForm: React.FC<AgentFormProps> = ({
     // The one save boundary: form strings -> stored values.
     const normalizedAgent = (a: any): AgentType => {
         const base: any = { ...a };
+        // Unticked keeps the typed text on screen but saves none, so re-ticking restores it.
+        if (!sendOpeningMessage) base.firstChatSentence = '';
         // Seed default pacing when HD or splitting is on without a block. isSplitting uses the
         // HD state on screen, since the doc's `humanized` is only updated further down.
         const isSplitting = switchOn({ ...a, humanized: isHumanDeception }, 'split');
@@ -348,7 +354,8 @@ const AgentForm: React.FC<AgentFormProps> = ({
         let message = '';
         if (!agent.title) message = 'Title is required.';
         else if (!agent.model) message = 'Agent selection is required.';
-        else if (!agent.firstChatSentence) message = 'First Chat Sentence is required.';
+        else if (sendOpeningMessage && !agent.firstChatSentence?.trim())
+            message = 'First Chat Sentence is required when the opening message is on.';
         else if (!agent.systemStarterPrompt) message = 'System Starter Prompt is required.';
         else if (agent.pacing != null) {
             // Report a typo instead of silently falling back to the default. `enabled` holds booleans.
@@ -588,26 +595,38 @@ const AgentForm: React.FC<AgentFormProps> = ({
                 />
                 <FieldInfo text="Which LLM powers this agent; uses the owner's stored key for that provider. An account restricted to certain models can only be given those." />
             </Box>
-            <TextField
-                fullWidth
-                required
-                multiline
-                maxRows={4}
-                rows={4}
-                label="First Chat Sentence"
-                name="firstChatSentence"
-                value={agent.firstChatSentence}
-                onChange={handleChange}
-                size="small"
-                margin="normal"
-                InputProps={{
-                    endAdornment: (
-                        <InputAdornment position="end" sx={{ alignSelf: 'flex-start', mt: 1 }}>
-                            <FieldInfo text="The opening line the agent sends automatically when the conversation starts." />
-                        </InputAdornment>
-                    ),
-                }}
+            <FormControlLabel
+                sx={{ mt: 1 }}
+                control={
+                    <Checkbox
+                        checked={sendOpeningMessage}
+                        onChange={(e) => setSendOpeningMessage(e.target.checked)}
+                    />
+                }
+                label="Send automatic opening message"
             />
+            {sendOpeningMessage && (
+                <TextField
+                    fullWidth
+                    required
+                    multiline
+                    maxRows={4}
+                    rows={4}
+                    label="First Chat Sentence"
+                    name="firstChatSentence"
+                    value={agent.firstChatSentence ?? ''}
+                    onChange={handleChange}
+                    size="small"
+                    margin="normal"
+                    InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end" sx={{ alignSelf: 'flex-start', mt: 1 }}>
+                                <FieldInfo text="The opening line the agent sends automatically when the conversation starts." />
+                            </InputAdornment>
+                        ),
+                    }}
+                />
+            )}
             <TextField
                 fullWidth
                 required

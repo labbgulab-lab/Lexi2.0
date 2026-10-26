@@ -1562,15 +1562,15 @@ class ConversationsService {
             ...segmentFields,
         });
 
-        const firstMessage: Message = {
-            role: 'assistant',
-            content: isPrivileged ? agent.firstChatSentence : user.agent.firstChatSentence,
-            timeDelay: null,
-            prev_message: null,
-        };
-        console.log(firstMessage)
+        // An agent may have no opening message; then the participant speaks first.
+        const firstChatContent = isPrivileged ? agent.firstChatSentence : user.agent.firstChatSentence;
         await Promise.all([
-            this.createMessageDoc(firstMessage, res._id.toString(), 1, 0, 0, 0, 0, 0),
+            ...(firstChatContent
+                ? [this.createMessageDoc(
+                    { role: 'assistant', content: firstChatContent, timeDelay: null, prev_message: null },
+                    res._id.toString(), 1, 0, 0, 0, 0, 0,
+                  )]
+                : []),
             usersService.addConversation(userId),
             !isPrivileged && experimentsService.addSession(experimentId),
         ]);
